@@ -1,0 +1,6 @@
+[submodule "acvbotapi"]
+	path = acvbotapi
+	url = ./acvbotapi
+[submodule "node"]
+	path = node
+	url = ./node

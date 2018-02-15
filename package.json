@@ -1,0 +1,20 @@
+{
+  "name": "acvbotfb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/acvbotfb/link.js",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "config": "^1.20.4",
+    "ejs": "^2.4.2",
+    "express": "^4.13.4",
+    "request": "^2.72.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node build/acvbotfb/link.js",
+    "debug": "node --nolazy --inspect=9229 build/acvbotfb/link.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
