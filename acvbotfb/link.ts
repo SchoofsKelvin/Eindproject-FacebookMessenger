@@ -1,5 +1,5 @@
 
-import { Conversation, IActivity, ICardAction, ICardHero, ICardHeroOrThumbnailContent, ICardImage, ICardThumbnail, INameAndId } from '../acvbotapi';
+import { Conversation, IActivity, ICardAction, ICardHero, ICardHeroOrThumbnailContent, ICardImage, ICardThumbnail, INameAndId } from 'acvbotapi';
 
 import app = require('../node/app.js');
 import { MessageWithText } from '../node/app.js';

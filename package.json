@@ -2,8 +2,8 @@
   "name": "acvbotfb",
   "version": "1.0.0",
   "description": "",
-  "main": "build/acvbotfb/link.js",
   "dependencies": {
+    "acvbotapi": "file:acvbotapi",
     "body-parser": "^1.15.0",
     "config": "^1.20.4",
     "ejs": "^2.4.2",
@@ -12,9 +12,12 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node build/acvbotfb/link.js",
-    "debug": "node --nolazy --inspect=9229 build/acvbotfb/link.js"
+    "start": "node dist/acvbotfb/link.js",
+    "debug": "node --nolazy --inspect=9229 dist/acvbotfb/link.js"
   },
-  "author": "",
+  "author":{
+    "name": "Kelvin Schoofs",
+    "email": "schoofs.kelvin@gmail.com"
+  },
   "license": "ISC"
 }
