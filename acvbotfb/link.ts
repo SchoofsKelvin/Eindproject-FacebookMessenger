@@ -12,6 +12,9 @@ const conversations: {[key: string]: Conversation} = {};
 
 console.log('bot', bot);
 
+/**
+ * Helper function to send a simple text message
+ */
 function sendTextMessage(recipientId: string, message: string) {
   callSendAPI({
     messaging_type: 'RESPONSE',
@@ -20,6 +23,13 @@ function sendTextMessage(recipientId: string, message: string) {
   });
 }
 
+/**
+ * Converts CardActions to Buttons
+ *
+ * Only supports openUrl and imBack actions for now, other ones are filtered
+ *
+ * @param actions List of CardActions
+ */
 function convertButtons(actions: ICardAction[]): app.Button[] {
   return actions.map((action) => {
     const url = action.type === 'openUrl';
@@ -40,6 +50,13 @@ function convertButtons(actions: ICardAction[]): app.Button[] {
   }).filter(e => e) as app.Button[];
 }
 
+/**
+ * Gets the conversation for the given userId
+ *
+ * If none is known, one is created and its events are connected
+ *
+ * @param id The userId we want the conversation for
+ */
 function getConversation(id: string) {
   let conv = conversations[id];
   if (conv) return conv;
@@ -101,6 +118,17 @@ function getConversation(id: string) {
   return conv;
 }
 
+/**
+ * Handles the MessageEvent from Messenger
+ *
+ * Uses getConversation(event.sender.id) internally, possibly starting a new conversation
+ *
+ * Basically extracts the text message (if possible) and sends it to the bot
+ * First tries to extract postback payload/title, then quick_reply payload, then the regular message text
+ * Also sets the conversation.userName to the first_name of {event.sender} if present
+ *
+ * @event event The MessageEvent we need to handle
+ */
 function handleMessageEvent(event: app.MessageEvent) {
   const conv = getConversation(event.sender.id);
   let text: string = event.message && (event.message as MessageWithText).text;
@@ -117,6 +145,7 @@ function handleMessageEvent(event: app.MessageEvent) {
   conv.whenConnected(() => conv.sendMessage(text), 5000);
 }
 
+// We got one handler for messages, quick replies and postbacks
 bot.on('message', handleMessageEvent);
 bot.on('quickreply', handleMessageEvent);
 bot.on('postback', handleMessageEvent);
