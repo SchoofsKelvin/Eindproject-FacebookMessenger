@@ -1,8 +1,8 @@
 
 import { Conversation, IActivity, ICardAction, ICardHero, ICardHeroOrThumbnailContent, ICardImage, ICardThumbnail, INameAndId } from 'acvbotapi';
 
-import app = require('../node/app.js');
-import { MessageWithText } from '../node/app.js';
+import app = require('../messengerbot/app.js');
+import { MessageWithText } from '../messengerbot/app.js';
 const MessengerBot = app.MessengerBot;
 const bot = app as any as app.MessengerBot;
 
