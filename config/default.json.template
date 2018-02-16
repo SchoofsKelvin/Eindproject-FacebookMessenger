@@ -1,9 +1,9 @@
 {
-  "secret": "",
+  "secret": "BOT APPLICATION SECRET",
   "directLineUrl": "https://webchat.botframework.com/v3/directline",
 
-  "appSecret": "",
-  "pageAccessToken": "",
-  "validationToken": "",
-  "serverURL": ""
+  "appSecret": "FACEBOOK APPLICATION SECRET",
+  "pageAccessToken": "FB PAGE ACCESS TOKEN",
+  "validationToken": "OPTIONAL VALIDATION TOKEN FOR LINKING WEBHOOK",
+  "serverURL": "URL OF THE SERVER FOR STATIC ASSETS"
 }
