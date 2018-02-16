@@ -1,6 +1,3 @@
-[submodule "acvbotapi"]
-	path = acvbotapi
-	url = ./acvbotapi
 [submodule "messengerbot"]
 	path = messengerbot
 	url = ./messengerbot
