@@ -13,7 +13,7 @@ package-lock.json
 .vscode
 .DS_Store
 
-dist
+# dist
 
 config/default.json
 

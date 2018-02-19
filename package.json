@@ -20,7 +20,7 @@
   "scripts": {
     "start": "node dist/acvbotfb/link.js",
     "noglobal": "set NODE_PATH='' && node dist/acvbotfb/link.js",
-    "compile": "set NODE_PATH='' && tsc && cd acvbotapi && tsc && cd ..",
+    "compile": "set NODE_PATH='' && tsc",
     "debug": "node --nolazy --inspect=9229 dist/acvbotfb/link.js"
   },
   "author": {
