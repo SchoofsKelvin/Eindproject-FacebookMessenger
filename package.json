@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "dependencies": {
-    "acvbotapi": "file:../acvbotapi",
+    "acvbotapi": "github:SchoofsKelvin/Eindproject-acvbotapi",
     "body-parser": "^1.15.0",
     "config": "^1.29.4",
     "ejs": "^2.4.2",
