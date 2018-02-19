@@ -2,15 +2,13 @@
 import { Conversation, IActivity, ICardAction, ICardHero, ICardHeroOrThumbnailContent, ICardImage, ICardThumbnail, INameAndId } from 'acvbotapi';
 
 import app = require('../messengerbot/app.js');
-import { MessageWithText } from '../messengerbot/app.js';
+import { MessageWithText, PayloadGeneric } from '../messengerbot/app.js';
 const MessengerBot = app.MessengerBot;
 const bot = app as any as app.MessengerBot;
 
 const callSendAPI = MessengerBot.callSendAPI;
 
 const conversations: {[key: string]: Conversation} = {};
-
-console.log('bot', bot);
 
 /**
  * Helper function to send a simple text message
@@ -62,10 +60,12 @@ function getConversation(id: string) {
   if (conv) return conv;
   conv = conversations[id] = new Conversation();
   conv.userId = id;
+  conv.userName = 'ID#' + id;
   conv.create();
   conv.on('message', (msg: string, act: IActivity) => {
     if (msg) {
       sendTextMessage(id, msg);
+      console.log(`[>${conv.userName}] ${msg}`);
     }
     if (act.attachments.length) {
       act.attachments.forEach((attach) => {
@@ -79,6 +79,8 @@ function getConversation(id: string) {
                 payload: button.title,
               } as app.QuickReply;
             });
+            console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
+            console.log('\tQuick replies: ' + replies.map(r => r.title).join(', '));
             callSendAPI({
               message: {
                 quick_replies: replies,
@@ -100,8 +102,10 @@ function getConversation(id: string) {
                   image_url: (content.images as ICardImage[])[0].url,
                   buttons: convertButtons(content.buttons as ICardAction[]),
                 }],
-              },
+              } as PayloadGeneric,
             };
+            console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
+            console.log('\tThumbnail: ' + JSON.stringify((attachment.payload as PayloadGeneric).elements));
             callSendAPI({
               message: { attachment },
               messaging_type: 'RESPONSE',
@@ -142,6 +146,7 @@ function handleMessageEvent(event: app.MessageEvent) {
     }
   }
   if (!text) return;
+  console.log(`[<${conv.userName}] ${text}`);
   conv.whenConnected(() => conv.sendMessage(text), 5000);
 }
 
