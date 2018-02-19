@@ -1,6 +1,8 @@
 
 import { Conversation, IActivity, ICardAction, ICardHero, ICardHeroOrThumbnailContent, ICardImage, ICardThumbnail, INameAndId } from 'acvbotapi';
 
+import { getProfile } from './fbapi';
+
 import app = require('../messengerbot/app.js');
 import { MessageWithText, PayloadGeneric } from '../messengerbot/app.js';
 const MessengerBot = app.MessengerBot;
@@ -61,6 +63,7 @@ function getConversation(id: string) {
   conv = conversations[id] = new Conversation();
   conv.userId = id;
   conv.userName = 'ID#' + id;
+  getProfile(id).then(p => conv.userName = `${p.first_name} ${p.last_name}`);
   conv.create();
   conv.on('message', (msg: string, act: IActivity) => {
     if (msg) {
@@ -136,7 +139,6 @@ function getConversation(id: string) {
 function handleMessageEvent(event: app.MessageEvent) {
   const conv = getConversation(event.sender.id);
   let text: string = event.message && (event.message as MessageWithText).text;
-  conv.userName = event.sender.name ? event.sender.name.first_name : conv.userName;
   if (event.postback) {
     text = event.postback.payload || event.postback.title;
   } else if (event.message) {
