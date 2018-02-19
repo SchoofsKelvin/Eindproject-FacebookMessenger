@@ -69,7 +69,7 @@ async function getConversation(id: string) {
   conv.on('message', (msg: string, act: IActivity) => {
     if (msg) {
       sendTextMessage(id, msg);
-      console.log(`[>${conv.userName}] ${msg}`);
+      console.log(`[To ${conv.userName}] ${msg}`);
     }
     if (act.attachments.length) {
       act.attachments.forEach((attach) => {
@@ -83,7 +83,7 @@ async function getConversation(id: string) {
                 payload: button.title,
               } as app.QuickReply;
             });
-            console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
+            console.log(`[To ${conv.userName}] ${attach.content.text || '...'}`);
             console.log('\tQuick replies: ' + replies.map(r => r.title).join(', '));
             callSendAPI({
               message: {
@@ -108,7 +108,7 @@ async function getConversation(id: string) {
                 }],
               } as PayloadGeneric,
             };
-            console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
+            console.log(`[To ${conv.userName}] ${attach.content.text || '...'}`);
             console.log('\tThumbnail: ' + JSON.stringify((attachment.payload as PayloadGeneric).elements));
             callSendAPI({
               message: { attachment },
@@ -149,7 +149,7 @@ async function handleMessageEvent(event: app.MessageEvent) {
     }
   }
   if (!text) return;
-  console.log(`[<${conv.userName}] ${text}`);
+  console.log(`[From ${conv.userName}] ${text}`);
   conv.whenConnected(() => conv.sendMessage(text), 5000);
 }
 
