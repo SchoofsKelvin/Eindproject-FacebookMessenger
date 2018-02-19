@@ -130,11 +130,9 @@ function callSendAPI(messageData) {
       const messageId = body.message_id;
 
       if (messageId) {
-        console.log('Successfully sent message with id %s to recipient %s',
-          messageId, recipientId);
+        // console.log('Successfully sent message with id %s to recipient %s', messageId, recipientId);
       } else {
-        console.log('Successfully called Send API for recipient %s',
-          recipientId);
+        // console.log('Successfully called Send API for recipient %s', recipientId);
       }
     } else {
       console.error('Failed calling Send API', response.statusCode, response.statusMessage, body.error);
@@ -232,8 +230,8 @@ function receivedPostback(event) {
   // button for Structured Messages.
   const payload = event.postback.payload;
 
-  console.log("Received postback for user %d and page %d with payload '%s' " +
-    'at %d', senderID, recipientID, payload, timeOfPostback);
+  // console.log("Received postback for user %d and page %d with payload '%s' " +
+  //   'at %d', senderID, recipientID, payload, timeOfPostback);
 
   bot.emit('postback', event);
 
@@ -721,11 +719,11 @@ function receivedMessage(event) {
   const timeOfMessage = event.timestamp;
   const message = event.message;
 
-  console.log(event);
+  // console.log(event);
 
-  console.log('Received message for user %d and page %d at %d with message:',
-    senderID, recipientID, timeOfMessage);
-  console.log(JSON.stringify(message));
+  // console.log('Received message for user %d and page %d at %d with message:',
+  //   senderID, recipientID, timeOfMessage);
+  // console.log(JSON.stringify(message));
 
   const isEcho = message.is_echo;
   const messageId = message.mid;
@@ -739,8 +737,7 @@ function receivedMessage(event) {
 
   if (isEcho) {
     // Just logging message echoes to console
-    console.log('Received echo for message %s and app %d with metadata %s',
-      messageId, appId, metadata);
+    // console.log('Received echo for message %s and app %d with metadata %s', messageId, appId, metadata);
     return;
   } else if (quickReply) {
     const quickReplyPayload = quickReply.payload;
@@ -849,7 +846,7 @@ app.get('/webhook', (req, res) => {
 app.post('/webhook', (req, res) => {
   const data = req.body;
 
-  console.log('DATA', data);
+  // console.log('DATA', data);
 
   // Make sure this is a page subscription
   if (data.object == 'page') {
