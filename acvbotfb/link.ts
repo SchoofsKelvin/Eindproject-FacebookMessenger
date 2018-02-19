@@ -57,13 +57,14 @@ function convertButtons(actions: ICardAction[]): app.Button[] {
  *
  * @param id The userId we want the conversation for
  */
-function getConversation(id: string) {
+async function getConversation(id: string) {
   let conv = conversations[id];
   if (conv) return conv;
   conv = conversations[id] = new Conversation();
   conv.userId = id;
   conv.userName = 'ID#' + id;
-  getProfile(id).then(p => conv.userName = `${p.first_name} ${p.last_name}`);
+  const profile = await getProfile(id);
+  conv.userName = `${profile.first_name} ${profile.last_name}`;
   conv.create();
   conv.on('message', (msg: string, act: IActivity) => {
     if (msg) {
@@ -136,8 +137,8 @@ function getConversation(id: string) {
  *
  * @event event The MessageEvent we need to handle
  */
-function handleMessageEvent(event: app.MessageEvent) {
-  const conv = getConversation(event.sender.id);
+async function handleMessageEvent(event: app.MessageEvent) {
+  const conv = await getConversation(event.sender.id);
   let text: string = event.message && (event.message as MessageWithText).text;
   if (event.postback) {
     text = event.postback.payload || event.postback.title;

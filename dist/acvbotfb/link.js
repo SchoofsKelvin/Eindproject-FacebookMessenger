@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const acvbotapi_1 = require("acvbotapi");
 const fbapi_1 = require("./fbapi");
@@ -51,72 +59,75 @@ function convertButtons(actions) {
  * @param id The userId we want the conversation for
  */
 function getConversation(id) {
-    let conv = conversations[id];
-    if (conv)
-        return conv;
-    conv = conversations[id] = new acvbotapi_1.Conversation();
-    conv.userId = id;
-    conv.userName = 'ID#' + id;
-    fbapi_1.getProfile(id).then(p => conv.userName = `${p.first_name} ${p.last_name}`);
-    conv.create();
-    conv.on('message', (msg, act) => {
-        if (msg) {
-            sendTextMessage(id, msg);
-            console.log(`[>${conv.userName}] ${msg}`);
-        }
-        if (act.attachments.length) {
-            act.attachments.forEach((attach) => {
-                switch (attach.contentType) {
-                    case 'application/vnd.microsoft.card.hero': {
-                        const replies = attach.content.buttons.map((button) => {
-                            return {
-                                content_type: 'text',
-                                title: button.title,
-                                image_url: button.image || null,
-                                payload: button.title,
+    return __awaiter(this, void 0, void 0, function* () {
+        let conv = conversations[id];
+        if (conv)
+            return conv;
+        conv = conversations[id] = new acvbotapi_1.Conversation();
+        conv.userId = id;
+        conv.userName = 'ID#' + id;
+        const profile = yield fbapi_1.getProfile(id);
+        conv.userName = `${profile.first_name} ${profile.last_name}`;
+        conv.create();
+        conv.on('message', (msg, act) => {
+            if (msg) {
+                sendTextMessage(id, msg);
+                console.log(`[>${conv.userName}] ${msg}`);
+            }
+            if (act.attachments.length) {
+                act.attachments.forEach((attach) => {
+                    switch (attach.contentType) {
+                        case 'application/vnd.microsoft.card.hero': {
+                            const replies = attach.content.buttons.map((button) => {
+                                return {
+                                    content_type: 'text',
+                                    title: button.title,
+                                    image_url: button.image || null,
+                                    payload: button.title,
+                                };
+                            });
+                            console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
+                            console.log('\tQuick replies: ' + replies.map(r => r.title).join(', '));
+                            callSendAPI({
+                                message: {
+                                    quick_replies: replies,
+                                    text: attach.content.text || '...',
+                                },
+                                messaging_type: 'RESPONSE',
+                                recipient: { id },
+                            });
+                            break;
+                        }
+                        case 'application/vnd.microsoft.card.thumbnail': {
+                            const content = attach.content;
+                            const attachment = {
+                                type: 'template',
+                                payload: {
+                                    template_type: 'generic',
+                                    elements: [{
+                                            title: content.title,
+                                            image_url: content.images[0].url,
+                                            buttons: convertButtons(content.buttons),
+                                        }],
+                                },
                             };
-                        });
-                        console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
-                        console.log('\tQuick replies: ' + replies.map(r => r.title).join(', '));
-                        callSendAPI({
-                            message: {
-                                quick_replies: replies,
-                                text: attach.content.text || '...',
-                            },
-                            messaging_type: 'RESPONSE',
-                            recipient: { id },
-                        });
-                        break;
+                            console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
+                            console.log('\tThumbnail: ' + JSON.stringify(attachment.payload.elements));
+                            callSendAPI({
+                                message: { attachment },
+                                messaging_type: 'RESPONSE',
+                                recipient: { id },
+                            });
+                            break;
+                        }
+                        default:
+                            console.error(`No idea how to handle attachment type '${attach.contentType}'`, attach);
                     }
-                    case 'application/vnd.microsoft.card.thumbnail': {
-                        const content = attach.content;
-                        const attachment = {
-                            type: 'template',
-                            payload: {
-                                template_type: 'generic',
-                                elements: [{
-                                        title: content.title,
-                                        image_url: content.images[0].url,
-                                        buttons: convertButtons(content.buttons),
-                                    }],
-                            },
-                        };
-                        console.log(`[>${conv.userName}] ${attach.content.text || '...'}`);
-                        console.log('\tThumbnail: ' + JSON.stringify(attachment.payload.elements));
-                        callSendAPI({
-                            message: { attachment },
-                            messaging_type: 'RESPONSE',
-                            recipient: { id },
-                        });
-                        break;
-                    }
-                    default:
-                        console.error(`No idea how to handle attachment type '${attach.contentType}'`, attach);
-                }
-            });
-        }
+                });
+            }
+        });
+        return conv;
     });
-    return conv;
 }
 /**
  * Handles the MessageEvent from Messenger
@@ -130,24 +141,26 @@ function getConversation(id) {
  * @event event The MessageEvent we need to handle
  */
 function handleMessageEvent(event) {
-    const conv = getConversation(event.sender.id);
-    let text = event.message && event.message.text;
-    if (event.postback) {
-        text = event.postback.payload || event.postback.title;
-    }
-    else if (event.message) {
-        text = event.message.text;
-        if (event.message.quick_reply) {
-            text = event.message.quick_reply.payload || text;
+    return __awaiter(this, void 0, void 0, function* () {
+        const conv = yield getConversation(event.sender.id);
+        let text = event.message && event.message.text;
+        if (event.postback) {
+            text = event.postback.payload || event.postback.title;
         }
-    }
-    if (!text)
-        return;
-    console.log(`[<${conv.userName}] ${text}`);
-    conv.whenConnected(() => conv.sendMessage(text), 5000);
+        else if (event.message) {
+            text = event.message.text;
+            if (event.message.quick_reply) {
+                text = event.message.quick_reply.payload || text;
+            }
+        }
+        if (!text)
+            return;
+        console.log(`[<${conv.userName}] ${text}`);
+        conv.whenConnected(() => conv.sendMessage(text), 5000);
+    });
 }
 // We got one handler for messages, quick replies and postbacks
 bot.on('message', handleMessageEvent);
 bot.on('quickreply', handleMessageEvent);
 bot.on('postback', handleMessageEvent);
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibGluay5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL2FjdmJvdGZiL2xpbmsudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFDQSx5Q0FBaUo7QUFFakosbUNBQXFDO0FBRXJDLDhDQUErQztBQUUvQyxNQUFNLFlBQVksR0FBRyxHQUFHLENBQUMsWUFBWSxDQUFDO0FBQ3RDLE1BQU0sR0FBRyxHQUFHLEdBQThCLENBQUM7QUFFM0MsTUFBTSxXQUFXLEdBQUcsWUFBWSxDQUFDLFdBQVcsQ0FBQztBQUU3QyxNQUFNLGFBQWEsR0FBa0MsRUFBRSxDQUFDO0FBRXhEOztHQUVHO0FBQ0gseUJBQXlCLFdBQW1CLEVBQUUsT0FBZTtJQUMzRCxXQUFXLENBQUM7UUFDVixjQUFjLEVBQUUsVUFBVTtRQUMxQixPQUFPLEVBQUUsRUFBRSxJQUFJLEVBQUUsT0FBTyxFQUFFO1FBQzFCLFNBQVMsRUFBRSxFQUFFLEVBQUUsRUFBRSxXQUFXLEVBQUU7S0FDL0IsQ0FBQyxDQUFDO0FBQ0wsQ0FBQztBQUVEOzs7Ozs7R0FNRztBQUNILHdCQUF3QixPQUFzQjtJQUM1QyxNQUFNLENBQUMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxDQUFDLE1BQU0sRUFBRSxFQUFFO1FBQzVCLE1BQU0sR0FBRyxHQUFHLE1BQU0sQ0FBQyxJQUFJLEtBQUssU0FBUyxDQUFDO1FBQ3RDLE1BQU0sQ0FBQyxDQUFDLE1BQU0sQ0FBQyxJQUFJLENBQUMsQ0FBQyxDQUFDO1lBQ3BCLEtBQUssU0FBUztnQkFDWixNQUFNLENBQUM7b0JBQ0wsSUFBSSxFQUFFLFNBQVM7b0JBQ2YsS0FBSyxFQUFFLE1BQU0sQ0FBQyxLQUFLLElBQUksTUFBTSxDQUFDLElBQUk7b0JBQ2xDLEdBQUcsRUFBRSxNQUFNLENBQUMsS0FBSztpQkFDSixDQUFDO1lBQ2xCLEtBQUssUUFBUTtnQkFDWCxNQUFNLENBQUM7b0JBQ0wsSUFBSSxFQUFFLFVBQVU7b0JBQ2hCLEtBQUssRUFBRSxNQUFNLENBQUMsS0FBSyxJQUFJLE1BQU0sQ0FBQyxJQUFJO29CQUNsQyxPQUFPLEVBQUUsTUFBTSxDQUFDLEtBQUssSUFBSSxNQUFNLENBQUMsS0FBSztpQkFDeEIsQ0FBQztRQUNwQixDQUFDO0lBQ0gsQ0FBQyxDQUFDLENBQUMsTUFBTSxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUMsQ0FBQyxDQUFpQixDQUFDO0FBQ3BDLENBQUM7QUFFRDs7Ozs7O0dBTUc7QUFDSCx5QkFBeUIsRUFBVTtJQUNqQyxJQUFJLElBQUksR0FBRyxhQUFhLENBQUMsRUFBRSxDQUFDLENBQUM7SUFDN0IsRUFBRSxDQUFDLENBQUMsSUFBSSxDQUFDO1FBQUMsTUFBTSxDQUFDLElBQUksQ0FBQztJQUN0QixJQUFJLEdBQUcsYUFBYSxDQUFDLEVBQUUsQ0FBQyxHQUFHLElBQUksd0JBQVksRUFBRSxDQUFDO0lBQzlDLElBQUksQ0FBQyxNQUFNLEdBQUcsRUFBRSxDQUFDO0lBQ2pCLElBQUksQ0FBQyxRQUFRLEdBQUcsS0FBSyxHQUFHLEVBQUUsQ0FBQztJQUMzQixrQkFBVSxDQUFDLEVBQUUsQ0FBQyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUMsRUFBRSxDQUFDLElBQUksQ0FBQyxRQUFRLEdBQUcsR0FBRyxDQUFDLENBQUMsVUFBVSxJQUFJLENBQUMsQ0FBQyxTQUFTLEVBQUUsQ0FBQyxDQUFDO0lBQzNFLElBQUksQ0FBQyxNQUFNLEVBQUUsQ0FBQztJQUNkLElBQUksQ0FBQyxFQUFFLENBQUMsU0FBUyxFQUFFLENBQUMsR0FBVyxFQUFFLEdBQWMsRUFBRSxFQUFFO1FBQ2pELEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxDQUFDLENBQUM7WUFDUixlQUFlLENBQUMsRUFBRSxFQUFFLEdBQUcsQ0FBQyxDQUFDO1lBQ3pCLE9BQU8sQ0FBQyxHQUFHLENBQUMsS0FBSyxJQUFJLENBQUMsUUFBUSxLQUFLLEdBQUcsRUFBRSxDQUFDLENBQUM7UUFDNUMsQ0FBQztRQUNELEVBQUUsQ0FBQyxDQUFDLEdBQUcsQ0FBQyxXQUFXLENBQUMsTUFBTSxDQUFDLENBQUMsQ0FBQztZQUMzQixHQUFHLENBQUMsV0FBVyxDQUFDLE9BQU8sQ0FBQyxDQUFDLE1BQU0sRUFBRSxFQUFFO2dCQUNqQyxNQUFNLENBQUMsQ0FBQyxNQUFNLENBQUMsV0FBcUIsQ0FBQyxDQUFDLENBQUM7b0JBQ3JDLEtBQUsscUNBQXFDLEVBQUUsQ0FBQzt3QkFDM0MsTUFBTSxPQUFPLEdBQUksTUFBTSxDQUFDLE9BQU8sQ0FBQyxPQUF5QixDQUFDLEdBQUcsQ0FBQyxDQUFDLE1BQU0sRUFBRSxFQUFFOzRCQUN2RSxNQUFNLENBQUM7Z0NBQ0wsWUFBWSxFQUFFLE1BQU07Z0NBQ3BCLEtBQUssRUFBRSxNQUFNLENBQUMsS0FBSztnQ0FDbkIsU0FBUyxFQUFFLE1BQU0sQ0FBQyxLQUFLLElBQUksSUFBSTtnQ0FDL0IsT0FBTyxFQUFFLE1BQU0sQ0FBQyxLQUFLOzZCQUNKLENBQUM7d0JBQ3RCLENBQUMsQ0FBQyxDQUFDO3dCQUNILE9BQU8sQ0FBQyxHQUFHLENBQUMsS0FBSyxJQUFJLENBQUMsUUFBUSxLQUFLLE1BQU0sQ0FBQyxPQUFPLENBQUMsSUFBSSxJQUFJLEtBQUssRUFBRSxDQUFDLENBQUM7d0JBQ25FLE9BQU8sQ0FBQyxHQUFHLENBQUMsbUJBQW1CLEdBQUcsT0FBTyxDQUFDLEdBQUcsQ0FBQyxDQUFDLENBQUMsRUFBRSxDQUFDLENBQUMsQ0FBQyxLQUFLLENBQUMsQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQzt3QkFDeEUsV0FBVyxDQUFDOzRCQUNWLE9BQU8sRUFBRTtnQ0FDUCxhQUFhLEVBQUUsT0FBTztnQ0FDdEIsSUFBSSxFQUFFLE1BQU0sQ0FBQyxPQUFPLENBQUMsSUFBSSxJQUFJLEtBQUs7NkJBQ25DOzRCQUNELGNBQWMsRUFBRSxVQUFVOzRCQUMxQixTQUFTLEVBQUUsRUFBRSxFQUFFLEVBQUU7eUJBQ2xCLENBQUMsQ0FBQzt3QkFDSCxLQUFLLENBQUM7b0JBQ1IsQ0FBQztvQkFDRCxLQUFLLDBDQUEwQyxFQUFFLENBQUM7d0JBQ2hELE1BQU0sT0FBTyxHQUFHLE1BQU0sQ0FBQyxPQUFPLENBQUM7d0JBQy9CLE1BQU0sVUFBVSxHQUFtQjs0QkFDakMsSUFBSSxFQUFFLFVBQVU7NEJBQ2hCLE9BQU8sRUFBRTtnQ0FDUCxhQUFhLEVBQUUsU0FBUztnQ0FDeEIsUUFBUSxFQUFFLENBQUM7d0NBQ1QsS0FBSyxFQUFFLE9BQU8sQ0FBQyxLQUFlO3dDQUM5QixTQUFTLEVBQUcsT0FBTyxDQUFDLE1BQXVCLENBQUMsQ0FBQyxDQUFDLENBQUMsR0FBRzt3Q0FDbEQsT0FBTyxFQUFFLGNBQWMsQ0FBQyxPQUFPLENBQUMsT0FBd0IsQ0FBQztxQ0FDMUQsQ0FBQzs2QkFDZTt5QkFDcEIsQ0FBQzt3QkFDRixPQUFPLENBQUMsR0FBRyxDQUFDLEtBQUssSUFBSSxDQUFDLFFBQVEsS0FBSyxNQUFNLENBQUMsT0FBTyxDQUFDLElBQUksSUFBSSxLQUFLLEVBQUUsQ0FBQyxDQUFDO3dCQUNuRSxPQUFPLENBQUMsR0FBRyxDQUFDLGVBQWUsR0FBRyxJQUFJLENBQUMsU0FBUyxDQUFFLFVBQVUsQ0FBQyxPQUEwQixDQUFDLFFBQVEsQ0FBQyxDQUFDLENBQUM7d0JBQy9GLFdBQVcsQ0FBQzs0QkFDVixPQUFPLEVBQUUsRUFBRSxVQUFVLEVBQUU7NEJBQ3ZCLGNBQWMsRUFBRSxVQUFVOzRCQUMxQixTQUFTLEVBQUUsRUFBRSxFQUFFLEVBQUU7eUJBQ2xCLENBQUMsQ0FBQzt3QkFDSCxLQUFLLENBQUM7b0JBQ1IsQ0FBQztvQkFDRDt3QkFDRSxPQUFPLENBQUMsS0FBSyxDQUFDLDBDQUEwQyxNQUFNLENBQUMsV0FBVyxHQUFHLEVBQUUsTUFBTSxDQUFDLENBQUM7Z0JBQzNGLENBQUM7WUFDSCxDQUFDLENBQUMsQ0FBQztRQUNMLENBQUM7SUFDSCxDQUFDLENBQUMsQ0FBQztJQUNILE1BQU0sQ0FBQyxJQUFJLENBQUM7QUFDZCxDQUFDO0FBRUQ7Ozs7Ozs7Ozs7R0FVRztBQUNILDRCQUE0QixLQUF1QjtJQUNqRCxNQUFNLElBQUksR0FBRyxlQUFlLENBQUMsS0FBSyxDQUFDLE1BQU0sQ0FBQyxFQUFFLENBQUMsQ0FBQztJQUM5QyxJQUFJLElBQUksR0FBVyxLQUFLLENBQUMsT0FBTyxJQUFLLEtBQUssQ0FBQyxPQUEyQixDQUFDLElBQUksQ0FBQztJQUM1RSxFQUFFLENBQUMsQ0FBQyxLQUFLLENBQUMsUUFBUSxDQUFDLENBQUMsQ0FBQztRQUNuQixJQUFJLEdBQUcsS0FBSyxDQUFDLFFBQVEsQ0FBQyxPQUFPLElBQUksS0FBSyxDQUFDLFFBQVEsQ0FBQyxLQUFLLENBQUM7SUFDeEQsQ0FBQztJQUFDLElBQUksQ0FBQyxFQUFFLENBQUMsQ0FBQyxLQUFLLENBQUMsT0FBTyxDQUFDLENBQUMsQ0FBQztRQUN6QixJQUFJLEdBQUcsS0FBSyxDQUFDLE9BQU8sQ0FBQyxJQUFJLENBQUM7UUFDMUIsRUFBRSxDQUFDLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxXQUFXLENBQUMsQ0FBQyxDQUFDO1lBQzlCLElBQUksR0FBRyxLQUFLLENBQUMsT0FBTyxDQUFDLFdBQVcsQ0FBQyxPQUFPLElBQUksSUFBSSxDQUFDO1FBQ25ELENBQUM7SUFDSCxDQUFDO0lBQ0QsRUFBRSxDQUFDLENBQUMsQ0FBQyxJQUFJLENBQUM7UUFBQyxNQUFNLENBQUM7SUFDbEIsT0FBTyxDQUFDLEdBQUcsQ0FBQyxLQUFLLElBQUksQ0FBQyxRQUFRLEtBQUssSUFBSSxFQUFFLENBQUMsQ0FBQztJQUMzQyxJQUFJLENBQUMsYUFBYSxDQUFDLEdBQUcsRUFBRSxDQUFDLElBQUksQ0FBQyxXQUFXLENBQUMsSUFBSSxDQUFDLEVBQUUsSUFBSSxDQUFDLENBQUM7QUFDekQsQ0FBQztBQUVELCtEQUErRDtBQUMvRCxHQUFHLENBQUMsRUFBRSxDQUFDLFNBQVMsRUFBRSxrQkFBa0IsQ0FBQyxDQUFDO0FBQ3RDLEdBQUcsQ0FBQyxFQUFFLENBQUMsWUFBWSxFQUFFLGtCQUFrQixDQUFDLENBQUM7QUFDekMsR0FBRyxDQUFDLEVBQUUsQ0FBQyxVQUFVLEVBQUUsa0JBQWtCLENBQUMsQ0FBQyJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibGluay5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL2FjdmJvdGZiL2xpbmsudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7OztBQUNBLHlDQUFpSjtBQUVqSixtQ0FBcUM7QUFFckMsOENBQStDO0FBRS9DLE1BQU0sWUFBWSxHQUFHLEdBQUcsQ0FBQyxZQUFZLENBQUM7QUFDdEMsTUFBTSxHQUFHLEdBQUcsR0FBOEIsQ0FBQztBQUUzQyxNQUFNLFdBQVcsR0FBRyxZQUFZLENBQUMsV0FBVyxDQUFDO0FBRTdDLE1BQU0sYUFBYSxHQUFrQyxFQUFFLENBQUM7QUFFeEQ7O0dBRUc7QUFDSCx5QkFBeUIsV0FBbUIsRUFBRSxPQUFlO0lBQzNELFdBQVcsQ0FBQztRQUNWLGNBQWMsRUFBRSxVQUFVO1FBQzFCLE9BQU8sRUFBRSxFQUFFLElBQUksRUFBRSxPQUFPLEVBQUU7UUFDMUIsU0FBUyxFQUFFLEVBQUUsRUFBRSxFQUFFLFdBQVcsRUFBRTtLQUMvQixDQUFDLENBQUM7QUFDTCxDQUFDO0FBRUQ7Ozs7OztHQU1HO0FBQ0gsd0JBQXdCLE9BQXNCO0lBQzVDLE1BQU0sQ0FBQyxPQUFPLENBQUMsR0FBRyxDQUFDLENBQUMsTUFBTSxFQUFFLEVBQUU7UUFDNUIsTUFBTSxHQUFHLEdBQUcsTUFBTSxDQUFDLElBQUksS0FBSyxTQUFTLENBQUM7UUFDdEMsTUFBTSxDQUFDLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUM7WUFDcEIsS0FBSyxTQUFTO2dCQUNaLE1BQU0sQ0FBQztvQkFDTCxJQUFJLEVBQUUsU0FBUztvQkFDZixLQUFLLEVBQUUsTUFBTSxDQUFDLEtBQUssSUFBSSxNQUFNLENBQUMsSUFBSTtvQkFDbEMsR0FBRyxFQUFFLE1BQU0sQ0FBQyxLQUFLO2lCQUNKLENBQUM7WUFDbEIsS0FBSyxRQUFRO2dCQUNYLE1BQU0sQ0FBQztvQkFDTCxJQUFJLEVBQUUsVUFBVTtvQkFDaEIsS0FBSyxFQUFFLE1BQU0sQ0FB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
