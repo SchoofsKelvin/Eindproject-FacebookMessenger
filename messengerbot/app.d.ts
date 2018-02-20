@@ -107,7 +107,7 @@ export type MessageEvent = {
     sender: Recipient;
     recipient: Recipient;
     timestamp: number;
-    message: {
+    message?: {
         mid: string;
         text: string;
         attachments: Attachment[];
@@ -115,10 +115,15 @@ export type MessageEvent = {
             payload: string;
         }
     };
-    postback: {
+    postback?: {
         payload: string;
         title: string;
-    }
+    };
+    pass_thread_control?: {
+        new_owner_app_id: string;
+        metadata: string;
+    };
+    standby?: MessageEvent[];
 }
 
 export class MessengerBot extends EventEmitter {

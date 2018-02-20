@@ -279,6 +279,28 @@ function receivedAccountLink(event) {
 }
 
 /*
+ * Pass Thread Control Event
+ *
+ * Part of the Handover Protocol
+ * https://developers.facebook.com/docs/messenger-platform/handover-protocol/pass-thread-control
+ *
+ */
+function receivePassThreadControl(event) {
+  bot.emit('passThreadControl', event);
+}
+
+/*
+ * Standby Event
+ *
+ * Part of the Handover Protocol
+ * https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/standby
+ *
+ */
+function receiveStandby(event) {
+  bot.emit('standby', event);
+}
+
+/*
  * If users came here through testdrive, they need to configure the server URL
  * in default.json before they can access local resources likes images/videos.
  */
@@ -846,35 +868,42 @@ app.get('/webhook', (req, res) => {
 app.post('/webhook', (req, res) => {
   const data = req.body;
 
-  // console.log('DATA', data);
+  // console.log('DATA', JSON.stringify(data));
 
   // Make sure this is a page subscription
   if (data.object == 'page') {
     // Iterate over each entry
     // There may be multiple if batched
     data.entry.forEach((pageEntry) => {
-      if (!pageEntry.messaging) return;
       const pageID = pageEntry.id;
       const timeOfEvent = pageEntry.time;
 
       // Iterate over each messaging event
-      pageEntry.messaging.forEach((messagingEvent) => {
-        if (messagingEvent.optin) {
-          receivedAuthentication(messagingEvent);
-        } else if (messagingEvent.message) {
-          receivedMessage(messagingEvent);
-        } else if (messagingEvent.delivery) {
-          receivedDeliveryConfirmation(messagingEvent);
-        } else if (messagingEvent.postback) {
-          receivedPostback(messagingEvent);
-        } else if (messagingEvent.read) {
-          receivedMessageRead(messagingEvent);
-        } else if (messagingEvent.account_linking) {
-          receivedAccountLink(messagingEvent);
-        } else {
-          console.log('Webhook received unknown messagingEvent: ', messagingEvent);
-        }
-      });
+      if (pageEntry.messaging) {
+        pageEntry.messaging.forEach((messagingEvent) => {
+          if (messagingEvent.optin) {
+            receivedAuthentication(messagingEvent);
+          } else if (messagingEvent.message) {
+            receivedMessage(messagingEvent);
+          } else if (messagingEvent.delivery) {
+            receivedDeliveryConfirmation(messagingEvent);
+          } else if (messagingEvent.postback) {
+            receivedPostback(messagingEvent);
+          } else if (messagingEvent.read) {
+            receivedMessageRead(messagingEvent);
+          } else if (messagingEvent.account_linking) {
+            receivedAccountLink(messagingEvent);
+          } else if (messagingEvent.pass_thread_control) {
+            receivePassThreadControl(messagingEvent);
+          } else {
+            console.log('Webhook received unknown messagingEvent: ', messagingEvent);
+          }
+        });
+      } else if (pageEntry.standby) {
+        pageEntry.standby.forEach(receiveStandby);
+      } else {
+        console.log('Webhook received unknown pageEntry: ', pageEntry);
+      }
     });
 
     // Assume all went well.
