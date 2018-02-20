@@ -1,7 +1,7 @@
 
 import { Conversation, IActivity, ICardAction, ICardHero, ICardHeroOrThumbnailContent, ICardImage, ICardThumbnail, INameAndId } from 'acvbotapi';
 
-import { getProfile } from './fbapi';
+import { getProfile, handover as HandoverProtocol } from './fbapi';
 
 import app = require('../messengerbot/app.js');
 import { MessageWithText, PayloadGeneric } from '../messengerbot/app.js';
@@ -11,6 +11,7 @@ const bot = app as any as app.MessengerBot;
 const callSendAPI = MessengerBot.callSendAPI;
 
 const conversations: {[key: string]: Conversation} = {};
+const passedToInbox: string[] = [];
 
 /**
  * Helper function to send a simple text message
@@ -139,7 +140,7 @@ async function getConversation(id: string) {
  */
 async function handleMessageEvent(event: app.MessageEvent) {
   const conv = await getConversation(event.sender.id);
-  let text: string = event.message && (event.message as MessageWithText).text;
+  let text = event.message && (event.message as MessageWithText).text;
   if (event.postback) {
     text = event.postback.payload || event.postback.title;
   } else if (event.message) {
@@ -149,11 +150,49 @@ async function handleMessageEvent(event: app.MessageEvent) {
     }
   }
   if (!text) return;
+  if (text === 'helpcenter') {
+    console.log(`Switching conversation of ${conv.userName} to page inbox`);
+    HandoverProtocol.passThreadControlToInbox(event.sender.id, 'User initiated');
+    sendTextMessage(event.sender.id, '[ Welcome to the helpcenter ]');
+    passedToInbox.push(event.sender.id);
+    return;
+  }
   console.log(`[From ${conv.userName}] ${text}`);
-  conv.whenConnected(() => conv.sendMessage(text), 5000);
+  conv.whenConnected(() => conv.sendMessage(text as string), 5000);
 }
 
 // We got one handler for messages, quick replies and postbacks
 bot.on('message', handleMessageEvent);
 bot.on('quickreply', handleMessageEvent);
 bot.on('postback', handleMessageEvent);
+
+// Just for logging purposes for now
+bot.on('passThreadControl', (event: app.MessageEvent) => {
+  const conv = conversations[event.sender.id];
+  if (!conv) return;
+  // Bug: we forget if we passed it if the bot restarts
+  //      Partially solving this by adding in standby
+  if (!passedToInbox.includes(event.sender.id)) return;
+  console.log(`Got thread control for ${conv.userName} (${conv.userId}) (${(event.pass_thread_control as any).metadata})`);
+  sendTextMessage(event.sender.id, '[ Conversation returned to the bot ]');
+});
+bot.on('standby', async (event: app.MessageEvent) => {
+  const conv = await getConversation(event.sender.id);
+  // Fix that restart bug above
+  if (!passedToInbox.includes(event.sender.id)) {
+    console.log(`Marked ${conv.userName} (${conv.userId}) as passedToInbox from before a bot restart`);
+    passedToInbox.push(event.sender.id);
+  }
+  // Just logging below
+  let text = event.message && (event.message as MessageWithText).text;
+  if (event.postback) {
+    text = event.postback.payload || event.postback.title;
+  } else if (event.message) {
+    text = event.message.text;
+    if (event.message.quick_reply) {
+      text = event.message.quick_reply.payload || text;
+    }
+  }
+  if (!text) return;
+  console.log(`[STANDBY] [From ${conv.userName}] ${text}`);
+});
