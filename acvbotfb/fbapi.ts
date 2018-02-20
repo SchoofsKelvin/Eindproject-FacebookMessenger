@@ -29,3 +29,31 @@ export async function getProfile(id: string): Promise<IFacebookProfile> {
     });
   });
 }
+
+export async function doPost(api: string, json: object) {
+  const url = `https://graph.facebook.com/v2.6/me/${api}?access_token=${PAGE_ACCESS_TOKEN}`;
+  return new Promise<IFacebookProfile>((resolve, reject) => {
+    request.post(url, { json }, (error: any, response: request.Response, body: any) => {
+      error ? (console.error(error), reject(error)) : resolve(body);
+    });
+  });
+}
+
+export const handover = {
+  passThreadControl(recipientId: string, appId: string, metadata?: string) {
+    doPost('pass_thread_control', {
+      metadata,
+      recipient: { id: recipientId },
+      target_app_id: appId,
+    });
+  },
+  passThreadControlToInbox(recipientId: string, metadata?: string) {
+    handover.passThreadControl(recipientId, '263902037430900', metadata);
+  },
+  takeThreadControl(recipientId: string, metadata?: string) {
+    doPost('take_thread_control', {
+      metadata,
+      recipient: { id: recipientId },
+    });
+  },
+};
