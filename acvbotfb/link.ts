@@ -68,6 +68,15 @@ async function getConversation(id: string) {
   conv.userName = `${profile.first_name} ${profile.last_name}`;
   conv.create();
   conv.on('message', (msg: string, act: IActivity) => {
+    if (act.channelData && act.channelData.specialAction === 'livecontact') {
+      console.log(`Switching conversation of ${conv.userName} to page inbox`);
+      HandoverProtocol.passThreadControlToInbox(id, 'Initiated by bot activity');
+      if (act.channelData.successMessage) {
+        sendTextMessage(id, act.channelData.successMessage);
+      }
+      passedToInbox.push(id);
+      return; // Stop sending the default error message
+    }
     if (msg) {
       sendTextMessage(id, msg);
       console.log(`[To ${conv.userName}] ${msg}`);
@@ -150,7 +159,7 @@ async function handleMessageEvent(event: app.MessageEvent) {
     }
   }
   if (!text) return;
-  if (text === 'helpcenter') {
+  if (text === 'helpcenter') { // Not really needed anymore, but keep for testing I guess
     console.log(`Switching conversation of ${conv.userName} to page inbox`);
     HandoverProtocol.passThreadControlToInbox(event.sender.id, 'User initiated');
     sendTextMessage(event.sender.id, '[ Welcome to the helpcenter ]');
